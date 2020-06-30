@@ -1,6 +1,6 @@
 package xyz.nyroma.towny.citymanagement;
 
-import xyz.nyroma.towny.enums.TaxesState;
+import xyz.nyroma.towny.main.SLocation;
 
 import java.io.File;
 import java.util.List;
@@ -12,25 +12,6 @@ public class CityUtils {
     public static void log(String txt) {
         if (logger) {
             System.out.println(txt);
-        }
-    }
-
-    public static TaxesState applyTaxes(City city) {
-        float taxes = city.getMoneyManager().getTaxes();
-        if (city.getMoneyManager().removeMoney(taxes)) {
-            city.setFaillite(false);
-            log(city.getName() + " a été débité de " + taxes + " Nyr.");
-            return TaxesState.PAYED;
-        } else {
-            if (city.getFaillite()) {
-                removeCity(city);
-                log(city.getName() + " a été supprimée.");
-                return TaxesState.REMOVED;
-            } else {
-                city.setFaillite(true);
-                log(city.getName() + " est passée en faillite.");
-                return TaxesState.BROKEN;
-            }
         }
     }
 
@@ -51,7 +32,7 @@ public class CityUtils {
 
     public static boolean isMemberOfACity(String pseudo) {
         for (City city : CitiesCache.getCities()) {
-            for (String member : city.getMembersManager().get()) {
+            for (String member : city.getMembers()) {
                 if (member.equals(pseudo)) {
                     return true;
                 }
@@ -62,7 +43,7 @@ public class CityUtils {
 
     public static Optional<City> getCityOfMember(String pseudo) {
         for (City city : CitiesCache.getCities()) {
-            if (city.getMembersManager().isMember(pseudo)) {
+            if (city.getMembers().contains(pseudo)) {
                 return Optional.of(city);
             }
         }
@@ -85,8 +66,9 @@ public class CityUtils {
     }
 
     public static Optional<City> getClaimer(String world, int X, int Z) {
+        SLocation chunk = new SLocation(world, X, Z);
         for (City city : CitiesCache.getCities()) {
-            if (city.getClaimsManager().contains(world, X, Z)) {
+            if (city.getClaims().contains(chunk)) {
                 return Optional.of(city);
             }
         }

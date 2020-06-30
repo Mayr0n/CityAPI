@@ -2,24 +2,24 @@ package xyz.nyroma.towny.citymanagement;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import xyz.nyroma.towny.main.SLocation;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Optional;
 
-import static xyz.nyroma.towny.citymanagement.CityManager.log;
+import static xyz.nyroma.towny.citymanagement.CityUtils.log;
 
 public class CitiesCache {
     private static List<City> cities = new ArrayList<>();
     private static List<Long> ids = new ArrayList<>();
 
     public static boolean contains(String name) {
-        if(name.equals("The State")){
+        if (name.equals("The State")) {
             return false;
         } else {
             return CitiesCache.get(name).isPresent();
@@ -30,7 +30,7 @@ public class CitiesCache {
         return ids.contains(id);
     }
 
-    public static void setup(Hashtable<String, Hashtable<Integer, ArrayList<Integer>>> claims) {
+    public static void setup(List<SLocation> claims) {
         File mainFolder = new File("data/towny/");
         File citiesFolder = new File("data/towny/cities/");
         if (!mainFolder.exists()) {
@@ -49,42 +49,38 @@ public class CitiesCache {
         log("Villes chargées !");
     }
 
-    public static void shutdown(){
+    public static void shutdown() {
         serializeAll();
         cities = new ArrayList<>();
     }
 
-    public static void initializeState(Hashtable<String, Hashtable<Integer, ArrayList<Integer>>> claims) {
+    public static void initializeState(List<SLocation> claims) {
         City city = null;
 
         if (CitiesCache.get("The State").isPresent()) {
             city = CitiesCache.get("The State").get();
         } else {
             try {
-                city = new City("The State", "DiscUniverse", "Xénée");
+                city = new City("The State", "Xénée");
             } catch (TownyException e) {
                 e.printStackTrace();
             }
         }
 
         if (city != null) {
-            city.getMoneyManager().setTaxes(0);
-            city.getClaimsManager().setMax(99999);
-            city.getRelationsManager().setNice(false);
-            city.getRelationsManager().setEvil(false);
-            city.getMoneyManager().removeMoney(city.getMoneyManager().getAmount());
-            city.getMoneyManager().addMoney(1000000000);
+            city.setTaxes(0);
+            city.setMaxClaims(99999);
+            city.setNice(false);
+            city.setEvil(false);
+            city.removeMoney(city.getBankAmount());
+            city.addMoney(1000000000);
 
             if (CitiesCache.get("Warriors").isPresent()) {
-                city.getRelationsManager().addAlly(CitiesCache.get("Warriors").get());
+                city.addAlly(CitiesCache.get("Warriors").get());
             }
 
-            for (String s : claims.keySet()) {
-                for (int X : claims.get(s).keySet()) {
-                    for(int Z : claims.get(s).get(X)){
-                        city.getClaimsManager().addClaim(s, X, claims.get(s).get(X).get(Z));
-                    }
-                }
+            for (SLocation loc : claims) {
+                city.addClaim(loc.getWorld(), loc.getX(), loc.getZ());
             }
         }
     }
@@ -134,7 +130,7 @@ public class CitiesCache {
     }
 
     private static void writeInJson(File file, City city) throws IOException {
-        if(file.delete()) {
+        if (file.delete()) {
             file.createNewFile();
         }
 
@@ -152,7 +148,7 @@ public class CitiesCache {
         File[] files = citiesFolder.listFiles();
         if (files != null) {
             for (File file : files) {
-                if(file.getName().split("\\.").length == 2){
+                if (file.getName().split("\\.").length == 2) {
                     String name = file.getName().split("\\.")[0];
                     String extens = file.getName().split("\\.")[1];
                     if (extens.equals("json")) {
@@ -186,7 +182,7 @@ public class CitiesCache {
         log(file.getName());
         try {
             City city = gson.fromJson(new FileReader(file), City.class);
-            if(city != null){
+            if (city != null) {
                 return Optional.of(city);
             } else {
                 return Optional.empty();
